@@ -8,8 +8,9 @@
 
 use core::panic::PanicInfo;
 
-mod vga_buffer;
 mod qemu;
+mod serial;
+mod vga_buffer;
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
@@ -21,6 +22,7 @@ pub extern "C" fn _start() -> ! {
     loop {}
 }
 
+#[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
@@ -28,8 +30,23 @@ fn panic(info: &PanicInfo) -> ! {
 }
 
 #[cfg(test)]
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    serial_println!("[failed]");
+    serial_println!("Error: {}", info);
+    qemu::exit(qemu::ExitCode::Failure);
+    loop {}
+}
+
+#[test_case]
+fn patate() {
+    panic!("omg!");
+}
+
+
+#[cfg(test)]
 fn test_runner(tests: &[&dyn Fn()]) {
-    println!("Running {} tests", tests.len());
+    serial_println!("Running {} tests", tests.len());
     for test in tests {
         test();
     }
