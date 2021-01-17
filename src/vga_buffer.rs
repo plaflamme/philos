@@ -1,3 +1,4 @@
+use core::fmt;
 use core::ptr;
 
 #[allow(dead_code)]
@@ -91,10 +92,17 @@ impl Writer {
     }
 }
 
+impl fmt::Write for Writer {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.write_str(s);
+        Ok(())
+    }
+}
+
 // const VGA_BUFFER: &mut Buffer = unsafe { &mut *(0xb8000 as *mut Buffer) };
 
 pub fn test() {
-
+    use core::fmt::Write;
     let mut writer = Writer {
         current_col: 0,
         color_code: ColorCode::new(Color::LightGray, Color::Black),
@@ -103,4 +111,5 @@ pub fn test() {
     writer.write_u8(b'H');
     writer.write_str("ello ");
     writer.write_str("Wörld!");
+    write!(writer, "Bli blopp blop: {} {} {}", 1, true, 3.14159);
 }
