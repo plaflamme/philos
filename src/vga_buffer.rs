@@ -1,3 +1,5 @@
+use core::ptr;
+
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[repr(u8)] // u4 if it existed
@@ -61,10 +63,15 @@ impl Writer {
                 let row = BUFFER_HEIGHT - 1;
                 let col = self.current_col;
 
-                self.buffer.0[row][col] = VgaChar {
+                let vga_color = VgaChar {
                     ascii_char: value,
                     color_code: self.color_code,
                 };
+                unsafe {
+                    // write_volatile guarantees that this call will not be optimized away.
+                    // The volatile crate could be used but we only have one instance at this point.
+                    ptr::write_volatile(&mut self.buffer.0[row][col], vga_color);
+                }
                 self.current_col += 1;
             },
         }
