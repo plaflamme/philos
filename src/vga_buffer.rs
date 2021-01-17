@@ -1,6 +1,16 @@
 use core::fmt;
 use core::ptr;
 
+use lazy_static::lazy_static;
+
+lazy_static! {
+    pub static ref WRITER: Writer = Writer {
+        current_col: 0,
+        color_code: ColorCode::new(Color::LightGray, Color::Black),
+        buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
+    };
+}
+
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[repr(u8)] // u4 if it existed
@@ -114,19 +124,4 @@ impl fmt::Write for Writer {
         self.write_str(s);
         Ok(())
     }
-}
-
-// const VGA_BUFFER: &mut Buffer = unsafe { &mut *(0xb8000 as *mut Buffer) };
-
-pub fn test() {
-    use core::fmt::Write;
-    let mut writer = Writer {
-        current_col: 0,
-        color_code: ColorCode::new(Color::LightGray, Color::Black),
-        buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
-    };
-    writer.write_u8(b'H');
-    writer.write_str("ello ");
-    writer.write_str("Wörld!");
-    write!(writer, "Bli blopp blop: {} {} {}", 1, true, 3.14159);
 }

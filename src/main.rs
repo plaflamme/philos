@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 use core::panic::PanicInfo;
+use core::fmt::Write;
 
 mod vga_buffer;
 
@@ -8,7 +9,7 @@ static HELLO: &[u8] = b"Hello World!";
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    vga_buffer::test();
+    write!(vga_buffer::WRITER, "Hello world!");
     loop {}
 }
 
