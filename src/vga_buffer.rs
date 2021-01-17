@@ -1,14 +1,15 @@
 use core::fmt;
 use core::ptr;
+use spin::Mutex;
 
 use lazy_static::lazy_static;
 
 lazy_static! {
-    pub static ref WRITER: Writer = Writer {
+    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         current_col: 0,
         color_code: ColorCode::new(Color::LightGray, Color::Black),
         buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
-    };
+    });
 }
 
 #[allow(dead_code)]

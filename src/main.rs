@@ -9,7 +9,7 @@ static HELLO: &[u8] = b"Hello World!";
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    write!(vga_buffer::WRITER, "Hello world!");
+    write!(vga_buffer::WRITER.lock(), "Hello world!");
     loop {}
 }
 
