@@ -68,11 +68,7 @@ impl Writer {
                     ascii_char: value,
                     color_code: self.color_code,
                 };
-                unsafe {
-                    // write_volatile guarantees that this call will not be optimized away.
-                    // The volatile crate could be used but we only have one instance at this point.
-                    ptr::write_volatile(&mut self.buffer.0[row][col], vga_color);
-                }
+                self.write_at(row, col, vga_color);
                 self.current_col += 1;
             },
         }
@@ -87,8 +83,29 @@ impl Writer {
         }
     }
 
+    fn write_at(&mut self, row: usize, col: usize, v: VgaChar) {
+        unsafe {
+            // write_volatile guarantees that this call will not be optimized away.
+            // The volatile crate could be used but we only have one instance at this point.
+            ptr::write_volatile(&mut self.buffer.0[row][col], v);
+        }
+    }
+
     fn new_line(&mut self) {
-        unimplemented!()
+        for row in 1..BUFFER_HEIGHT {
+            for col in 0..BUFFER_WIDTH {
+                let v = self.buffer.0[row][col];
+                self.write_at(row - 1, col, v);
+            }
+        }
+        let clear = VgaChar {
+            ascii_char: b' ',
+            color_code: self.color_code,
+        };
+        for col in 0..BUFFER_WIDTH {
+            self.write_at(BUFFER_HEIGHT - 1, col, clear);
+        }
+        self.current_col = 0;
     }
 }
 
