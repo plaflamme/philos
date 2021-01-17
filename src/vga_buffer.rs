@@ -3,6 +3,7 @@ use core::ptr;
 use spin::Mutex;
 
 use lazy_static::lazy_static;
+use core::fmt::Write;
 
 lazy_static! {
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
@@ -125,4 +126,21 @@ impl fmt::Write for Writer {
         self.write_str(s);
         Ok(())
     }
+}
+
+#[macro_export]
+macro_rules! print {
+    ($($args:tt)*) => ($crate::vga_buffer::_print(format_args!($($args)*)));
+}
+
+#[macro_export]
+macro_rules! println {
+    () => ($crate::print!("\n"));
+    ($($args:tt)*) => ($crate::print!("{}\n", format_args!($($args)*)));
+}
+
+#[doc(hidden)]
+pub fn _print(args: fmt::Arguments) {
+    use core::fmt::Write;
+    WRITER.lock().write_fmt(args).unwrap();
 }
