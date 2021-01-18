@@ -7,6 +7,7 @@
 
 use core::panic::PanicInfo;
 
+pub mod gdt;
 pub mod interrupts;
 pub mod qemu;
 #[macro_use]
@@ -24,6 +25,7 @@ pub extern "C" fn _start() -> ! {
 
 pub fn init() {
     interrupts::init_idt();
+    gdt::init_gdt();
 }
 
 pub trait Test {
