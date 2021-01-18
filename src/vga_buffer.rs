@@ -143,3 +143,35 @@ macro_rules! println {
 pub fn _print(args: fmt::Arguments) {
     WRITER.lock().write_fmt(args).unwrap();
 }
+
+#[cfg(test)]
+mod test {
+    #[test_case]
+    fn test_println() {
+        println!("does not panic");
+    }
+
+    #[test_case]
+    fn test_many_println() {
+        for i in 0..200 {
+            println!("prints {}", i);
+        }
+    }
+
+    #[test_case]
+    fn test_println_output() {
+        let s = "Some test string that fits on a single line";
+        println!("{}", s);
+        for (i, c) in s.chars().enumerate() {
+            let screen_char = super::WRITER.lock().buffer.0[super::BUFFER_HEIGHT - 2][i];
+            assert_eq!(char::from(screen_char.ascii_char), c);
+        }
+    }
+
+    #[test_case]
+    fn test_long_line() {
+        for _ in 0..200 {
+            print!("test");
+        }
+    }
+}
