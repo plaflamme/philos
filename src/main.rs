@@ -3,15 +3,11 @@
 
 // https://os.phil-opp.com/testing/#custom-test-frameworks
 #![feature(custom_test_frameworks)]
-#![test_runner(crate::tests::test_runner)]
+#![test_runner(philos::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
-mod qemu;
-#[macro_use]
-mod serial;
-#[cfg(test)]
-mod tests;
-mod vga_buffer;
+use core::panic::PanicInfo;
+use philos::println;
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
@@ -24,11 +20,14 @@ pub extern "C" fn _start() -> ! {
 }
 
 #[cfg(not(test))]
-use core::panic::PanicInfo;
-#[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
     loop {}
 }
 
+#[cfg(test)]
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    philos::test_panic_handler(info);
+}
