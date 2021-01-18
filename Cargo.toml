@@ -12,6 +12,7 @@ edition = "2018"
 
 [dependencies]
 bootloader = "0.9"
+pc-keyboard = "0.5"
 pic8259_simple = "0.2.0"
 spin = "0.7"
 uart_16550 = "0.2"
