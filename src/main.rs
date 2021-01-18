@@ -13,6 +13,8 @@ use philos::println;
 pub extern "C" fn _start() -> ! {
     println!("{} {}", "Hello", "world!");
 
+    philos::init();
+
     #[cfg(test)]
     test_main();
 

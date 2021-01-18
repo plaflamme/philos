@@ -1,11 +1,13 @@
 #![no_std]
 #![cfg_attr(test, no_main)]
 #![feature(custom_test_frameworks)]
+#![feature(abi_x86_interrupt)] // https://os.phil-opp.com/cpu-exceptions/
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
 use core::panic::PanicInfo;
 
+pub mod interrupts;
 pub mod qemu;
 #[macro_use]
 pub mod serial;
@@ -15,8 +17,13 @@ pub mod vga_buffer;
 #[no_mangle]
 /// Entrypoint for cargo test
 pub extern "C" fn _start() -> ! {
+    init();
     test_main();
     loop {}
+}
+
+pub fn init() {
+    interrupts::init_idt();
 }
 
 pub trait Test {
@@ -55,4 +62,11 @@ pub fn test_runner(tests: &[&dyn Test]) {
     qemu::exit(qemu::ExitCode::Success);
 }
 
-
+#[cfg(test)]
+mod test {
+    #[test_case]
+    fn test_intr_bkpt() {
+        // invoke the breakpoint
+        x86_64::instructions::interrupts::int3();
+    }
+}
