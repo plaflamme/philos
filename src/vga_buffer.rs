@@ -141,11 +141,15 @@ macro_rules! println {
 
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
-    WRITER.lock().write_fmt(args).unwrap();
+    // avoid deadlocks with interrupt handlers
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        WRITER.lock().write_fmt(args).unwrap();
+    });
 }
 
 #[cfg(test)]
 mod test {
+
     #[test_case]
     fn test_println() {
         println!("does not panic");
@@ -160,12 +164,17 @@ mod test {
 
     #[test_case]
     fn test_println_output() {
+        use core::fmt::Write;
         let s = "Some test string that fits on a single line";
-        println!("{}", s);
-        for (i, c) in s.chars().enumerate() {
-            let screen_char = super::WRITER.lock().buffer.0[super::BUFFER_HEIGHT - 2][i];
-            assert_eq!(char::from(screen_char.ascii_char), c);
-        }
+        x86_64::instructions::interrupts::without_interrupts(||{
+            let mut writer = super::WRITER.lock();
+            writeln!(writer, "\n{}", s).expect("writeln failed");
+            for (i, c) in s.chars().enumerate() {
+                let screen_char = writer.buffer.0[super::BUFFER_HEIGHT - 2][i];
+                assert_eq!(char::from(screen_char.ascii_char), c);
+            }
+        });
+
     }
 
     #[test_case]

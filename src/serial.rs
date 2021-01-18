@@ -12,7 +12,10 @@ lazy_static! {
 }
 
 pub fn _print(args: core::fmt::Arguments) {
-    SERIAL.lock().write_fmt(args).expect("failed writing to serial interface");
+    // avoid deadlocks with interrupt handlers
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        SERIAL.lock().write_fmt(args).expect("failed writing to serial interface");
+    });
 }
 
 #[macro_export]

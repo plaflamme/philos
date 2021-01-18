@@ -25,7 +25,9 @@ pub extern "C" fn _start() -> ! {
 
 pub fn init() {
     interrupts::init_idt();
+    interrupts::init_pics();
     gdt::init_gdt();
+    x86_64::instructions::interrupts::enable();
 }
 
 pub trait Test {
