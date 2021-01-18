@@ -20,7 +20,7 @@ pub mod vga_buffer;
 pub extern "C" fn _start() -> ! {
     init();
     test_main();
-    loop {}
+    hlt();
 }
 
 pub fn init() {
@@ -49,7 +49,7 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
     serial_println!("[failed]");
     serial_println!("Error: {}", info);
     qemu::exit(qemu::ExitCode::Failure);
-    loop {}
+    hlt();
 }
 
 #[cfg(test)]
@@ -64,6 +64,12 @@ pub fn test_runner(tests: &[&dyn Test]) {
         test.run();
     }
     qemu::exit(qemu::ExitCode::Success);
+}
+
+pub fn hlt() -> ! {
+    loop {
+        x86_64::instructions::hlt();
+    }
 }
 
 #[cfg(test)]
