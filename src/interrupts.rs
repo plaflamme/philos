@@ -1,4 +1,4 @@
-use crate::{print, println, hlt};
+use crate::{hlt, print, println};
 use lazy_static::lazy_static;
 use pic8259_simple::ChainedPics;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
@@ -8,7 +8,8 @@ lazy_static! {
         let mut idt = InterruptDescriptorTable::new();
         idt.breakpoint.set_handler_fn(breakpoint_handler);
         unsafe {
-            idt.double_fault.set_handler_fn(double_fault_handler)
+            idt.double_fault
+                .set_handler_fn(double_fault_handler)
                 .set_stack_index(crate::gdt::DOUBLE_FAULT_IST_INDEX);
         }
         idt.page_fault.set_handler_fn(page_fault_interrupt_handler);
@@ -34,10 +35,16 @@ extern "x86-interrupt" fn double_fault_handler(sf: &mut InterruptStackFrame, err
 
 extern "x86-interrupt" fn timer_interrupt_handler(_: &mut InterruptStackFrame) {
     print!(".");
-    unsafe { PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer as u8) };
+    unsafe {
+        PICS.lock()
+            .notify_end_of_interrupt(InterruptIndex::Timer as u8)
+    };
 }
 
-extern "x86-interrupt" fn page_fault_interrupt_handler(sf: &mut InterruptStackFrame, error_code: PageFaultErrorCode) {
+extern "x86-interrupt" fn page_fault_interrupt_handler(
+    sf: &mut InterruptStackFrame,
+    error_code: PageFaultErrorCode,
+) {
     use x86_64::registers::control::Cr2;
 
     println!("EXCEPTION: PAGE FAULT");
@@ -57,7 +64,11 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_: &mut InterruptStackFrame
 
     lazy_static! {
         static ref KEYBOARD: spin::Mutex<Keyboard<pc_keyboard::layouts::Us104Key, ScancodeSet1>> = {
-            let kb = Keyboard::new(pc_keyboard::layouts::Us104Key, ScancodeSet1, pc_keyboard::HandleControl::Ignore);
+            let kb = Keyboard::new(
+                pc_keyboard::layouts::Us104Key,
+                ScancodeSet1,
+                pc_keyboard::HandleControl::Ignore,
+            );
             spin::Mutex::new(kb)
         };
     }
@@ -71,14 +82,17 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_: &mut InterruptStackFrame
         }
     }
 
-    unsafe { PICS.lock().notify_end_of_interrupt(InterruptIndex::Keyboard as u8) };
+    unsafe {
+        PICS.lock()
+            .notify_end_of_interrupt(InterruptIndex::Keyboard as u8)
+    };
 }
 
 pub const PIC1_OFFSET: u8 = 32;
 pub const PIC2_OFFSET: u8 = PIC1_OFFSET + 8;
 
 pub static PICS: spin::Mutex<ChainedPics> =
-    spin::Mutex::new( unsafe { ChainedPics::new(PIC1_OFFSET, PIC2_OFFSET) });
+    spin::Mutex::new(unsafe { ChainedPics::new(PIC1_OFFSET, PIC2_OFFSET) });
 
 pub fn init_pics() {
     unsafe { PICS.lock().initialize() };

@@ -1,8 +1,8 @@
-use x86_64::registers::control::Cr3;
-use x86_64::structures::paging::{PageTable, OffsetPageTable, FrameAllocator, Size4KiB, PhysFrame};
-use x86_64::{VirtAddr, PhysAddr};
 use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
 use bootloader::BootInfo;
+use x86_64::registers::control::Cr3;
+use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB};
+use x86_64::{PhysAddr, VirtAddr};
 
 pub unsafe fn init(physical_memory_offset: VirtAddr) -> OffsetPageTable<'static> {
     let level_4_table = active_level4_table(physical_memory_offset);
@@ -26,7 +26,10 @@ pub struct BootInfoFrameAllocator {
 
 impl BootInfoFrameAllocator {
     pub unsafe fn new(boot_info: &'static BootInfo) -> Self {
-        BootInfoFrameAllocator { memory_map: &boot_info.memory_map, next: 0 }
+        BootInfoFrameAllocator {
+            memory_map: &boot_info.memory_map,
+            next: 0,
+        }
     }
 
     fn unused_frames(&self) -> impl Iterator<Item = PhysFrame> {

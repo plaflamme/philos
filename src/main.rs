@@ -1,14 +1,13 @@
 #![no_std]
 #![no_main]
-
 // https://os.phil-opp.com/testing/#custom-test-frameworks
 #![feature(custom_test_frameworks)]
 #![test_runner(philos::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
+use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use philos::println;
-use bootloader::{entry_point, BootInfo};
 use x86_64::VirtAddr;
 
 entry_point!(kernel_main);

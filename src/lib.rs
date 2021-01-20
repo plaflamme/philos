@@ -9,8 +9,8 @@ use core::panic::PanicInfo;
 
 pub mod gdt;
 pub mod interrupts;
-pub mod qemu;
 pub mod memory;
+pub mod qemu;
 #[macro_use]
 pub mod serial;
 pub mod vga_buffer;
@@ -38,8 +38,8 @@ pub trait Test {
 }
 
 impl<T> Test for T
-    where
-        T: Fn(),
+where
+    T: Fn(),
 {
     fn run(&self) {
         serial_print!("{}...\t", core::any::type_name::<T>());

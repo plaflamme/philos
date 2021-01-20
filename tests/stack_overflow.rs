@@ -11,7 +11,8 @@ lazy_static! {
     static ref TEST_IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
         unsafe {
-            idt.double_fault.set_handler_fn(double_fault_handler)
+            idt.double_fault
+                .set_handler_fn(double_fault_handler)
                 .set_stack_index(philos::gdt::DOUBLE_FAULT_IST_INDEX);
         }
         idt
@@ -21,7 +22,7 @@ lazy_static! {
 extern "x86-interrupt" fn double_fault_handler(_: &mut InterruptStackFrame, _: u64) -> ! {
     serial_println!("[ok]");
     qemu::exit(qemu::ExitCode::Success);
-    loop{}
+    loop {}
 }
 
 #[no_mangle]

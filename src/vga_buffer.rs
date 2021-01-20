@@ -2,8 +2,8 @@ use core::fmt;
 use core::ptr;
 use spin::Mutex;
 
-use lazy_static::lazy_static;
 use core::fmt::Write;
+use lazy_static::lazy_static;
 
 lazy_static! {
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
@@ -82,7 +82,7 @@ impl Writer {
                 };
                 self.write_at(row, col, vga_color);
                 self.current_col += 1;
-            },
+            }
         }
     }
 
@@ -166,7 +166,7 @@ mod test {
     fn test_println_output() {
         use core::fmt::Write;
         let s = "Some test string that fits on a single line";
-        x86_64::instructions::interrupts::without_interrupts(||{
+        x86_64::instructions::interrupts::without_interrupts(|| {
             let mut writer = super::WRITER.lock();
             writeln!(writer, "\n{}", s).expect("writeln failed");
             for (i, c) in s.chars().enumerate() {
@@ -174,7 +174,6 @@ mod test {
                 assert_eq!(char::from(screen_char.ascii_char), c);
             }
         });
-
     }
 
     #[test_case]

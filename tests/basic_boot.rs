@@ -1,6 +1,5 @@
 #![no_std]
 #![no_main]
-
 // https://os.phil-opp.com/testing/#custom-test-frameworks
 #![feature(custom_test_frameworks)]
 #![test_runner(philos::test_runner)]
