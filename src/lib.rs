@@ -1,5 +1,6 @@
 #![no_std]
 #![cfg_attr(test, no_main)]
+#![feature(alloc_error_handler)] // https://os.phil-opp.com/heap-allocation/#the-alloc-error-handler-attribute
 #![feature(custom_test_frameworks)]
 #![feature(abi_x86_interrupt)] // https://os.phil-opp.com/cpu-exceptions/
 #![test_runner(crate::test_runner)]
@@ -7,6 +8,7 @@
 
 use core::panic::PanicInfo;
 
+pub mod allocator;
 pub mod gdt;
 pub mod interrupts;
 pub mod memory;
@@ -14,6 +16,8 @@ pub mod qemu;
 #[macro_use]
 pub mod serial;
 pub mod vga_buffer;
+
+extern crate alloc;
 
 #[cfg(test)]
 bootloader::entry_point!(test_kernel_main);
@@ -31,6 +35,11 @@ pub fn init() {
     interrupts::init_pics();
     gdt::init_gdt();
     x86_64::instructions::interrupts::enable();
+}
+
+#[alloc_error_handler]
+fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
+    panic!("allocation error: {:?}", layout)
 }
 
 pub trait Test {
