@@ -15,9 +15,11 @@ pub mod serial;
 pub mod vga_buffer;
 
 #[cfg(test)]
-#[no_mangle]
+bootloader::entry_point!(test_kernel_main);
+
 /// Entrypoint for cargo test
-pub extern "C" fn _start() -> ! {
+#[cfg(test)]
+fn test_kernel_main(_: &'static bootloader::BootInfo) -> ! {
     init();
     test_main();
     hlt();

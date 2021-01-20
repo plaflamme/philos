@@ -11,7 +11,7 @@ edition = "2018"
 #panic = "abort"
 
 [dependencies]
-bootloader = "0.9"
+bootloader = { version = "0.9" , features = ["map_physical_memory"] }
 pc-keyboard = "0.5"
 pic8259_simple = "0.2.0"
 spin = "0.7"
