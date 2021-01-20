@@ -9,17 +9,30 @@
 use core::panic::PanicInfo;
 use philos::println;
 use bootloader::{entry_point, BootInfo};
+use x86_64::VirtAddr;
 
 entry_point!(kernel_main);
 
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
     philos::init();
-    use x86_64::registers::control::Cr3;
 
-    println!("{:?}", boot_info);
+    let phys_offset = VirtAddr::new(boot_info.physical_memory_offset);
+    let addresses = [
+        // the identity-mapped vga buffer page
+        0xb8000,
+        // some code page
+        0x201008,
+        // some stack page
+        0x0100_0020_1a10,
+        // virtual address mapped to physical address 0
+        boot_info.physical_memory_offset,
+    ];
 
-    let (level_4_page_table, _) = Cr3::read();
-    println!("Level 4 page table at: {:?}", level_4_page_table.start_address());
+    for &address in &addresses {
+        let virt = VirtAddr::new(address);
+        let phys = unsafe { philos::memory::translate_addr(virt, phys_offset) };
+        println!("{:?} -> {:?}", virt, phys);
+    }
 
     #[cfg(test)]
     test_main();

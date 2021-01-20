@@ -10,6 +10,7 @@ use core::panic::PanicInfo;
 pub mod gdt;
 pub mod interrupts;
 pub mod qemu;
+pub mod memory;
 #[macro_use]
 pub mod serial;
 pub mod vga_buffer;
