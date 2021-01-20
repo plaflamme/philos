@@ -10,7 +10,6 @@ use core::panic::PanicInfo;
 use philos::println;
 use bootloader::{entry_point, BootInfo};
 use x86_64::VirtAddr;
-use x86_64::structures::paging::Page;
 
 entry_point!(kernel_main);
 
@@ -18,14 +17,8 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     philos::init();
 
     let phys_offset = VirtAddr::new(boot_info.physical_memory_offset);
-    let mut mapper = unsafe { philos::memory::init(phys_offset) };
-    let mut allocator = philos::memory::EmptyFrameAllocator;
-
-    let page = Page::containing_address(VirtAddr::new(0));
-    philos::memory::create_example_mapping(page, &mut mapper, &mut allocator);
-
-    let page_ptr: *mut u64 = page.start_address().as_mut_ptr();
-    unsafe { page_ptr.offset(400).write_volatile(0x_f021_f077_f065_f04e)};
+    let mut _mapper = unsafe { philos::memory::init(phys_offset) };
+    let mut _allocator = unsafe { philos::memory::BootInfoFrameAllocator::new(&boot_info) };
 
     #[cfg(test)]
     test_main();

@@ -1,6 +1,8 @@
 use x86_64::registers::control::Cr3;
-use x86_64::structures::paging::{PageTable, OffsetPageTable, Page, FrameAllocator, Size4KiB, PhysFrame, PageTableFlags, Mapper};
+use x86_64::structures::paging::{PageTable, OffsetPageTable, FrameAllocator, Size4KiB, PhysFrame};
 use x86_64::{VirtAddr, PhysAddr};
+use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
+use bootloader::BootInfo;
 
 pub unsafe fn init(physical_memory_offset: VirtAddr) -> OffsetPageTable<'static> {
     let level_4_table = active_level4_table(physical_memory_offset);
@@ -17,22 +19,31 @@ unsafe fn active_level4_table(phys_memory_offset: VirtAddr) -> &'static mut Page
     &mut *page_table_ptr
 }
 
-pub fn create_example_mapping(page: Page, mapper: &mut OffsetPageTable, frame_allocator: &mut impl FrameAllocator<Size4KiB>) {
-
-    let phys_frame = PhysFrame::containing_address(PhysAddr::new(0xb8000));
-    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
-
-    let map_result = unsafe {
-        mapper.map_to(page, phys_frame, flags, frame_allocator)
-    };
-
-    map_result.expect("oops").flush();
+pub struct BootInfoFrameAllocator {
+    memory_map: &'static MemoryMap,
+    next: usize,
 }
 
-pub struct EmptyFrameAllocator;
+impl BootInfoFrameAllocator {
+    pub unsafe fn new(boot_info: &'static BootInfo) -> Self {
+        BootInfoFrameAllocator { memory_map: &boot_info.memory_map, next: 0 }
+    }
 
-unsafe impl FrameAllocator<Size4KiB> for EmptyFrameAllocator {
+    fn unused_frames(&self) -> impl Iterator<Item = PhysFrame> {
+        self.memory_map
+            .iter()
+            .filter(|r| r.region_type == MemoryRegionType::Usable)
+            .map(|r| r.range.start_addr()..r.range.end_addr())
+            .flat_map(|r| r.step_by(4_096))
+            .map(PhysAddr::new)
+            .map(|r| PhysFrame::containing_address(r))
+    }
+}
+
+unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
     fn allocate_frame(&mut self) -> Option<PhysFrame> {
-        None
+        let frame = self.unused_frames().nth(self.next);
+        self.next += 1;
+        frame
     }
 }
