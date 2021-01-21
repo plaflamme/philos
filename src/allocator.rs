@@ -1,10 +1,11 @@
-use linked_list_allocator::LockedHeap;
 use x86_64::structures::paging::mapper::MapToError;
 use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;
 
+pub mod bump;
+
 #[global_allocator]
-static ALLOCATOR: LockedHeap = LockedHeap::empty();
+static ALLOCATOR: Locked<bump::BumpAllocator> = Locked::new(bump::BumpAllocator::new());
 
 pub const HEAP_START: usize = 0x_4444_4444_0000;
 pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
@@ -42,4 +43,29 @@ pub fn init(
     }
 
     Ok(())
+}
+
+pub struct Locked<A> {
+    value: spin::Mutex<A>,
+}
+
+impl<A> Locked<A> {
+    pub const fn new(value: A) -> Self {
+        Locked {
+            value: spin::Mutex::new(value),
+        }
+    }
+
+    pub fn lock(&self) -> spin::MutexGuard<A> {
+        self.value.lock()
+    }
+}
+
+pub fn align_up(addr: usize, align: usize) -> usize {
+    let r = addr % align;
+    if r == 0 {
+        addr
+    } else {
+        addr - r + align
+    }
 }
