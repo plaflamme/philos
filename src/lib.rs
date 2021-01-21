@@ -1,6 +1,7 @@
 #![no_std]
 #![cfg_attr(test, no_main)]
 #![feature(alloc_error_handler)] // https://os.phil-opp.com/heap-allocation/#the-alloc-error-handler-attribute
+#![feature(const_in_array_repeat_expressions)] // https://os.phil-opp.com/allocator-designs/#implementation-2
 #![feature(const_mut_refs)] // https://os.phil-opp.com/allocator-designs/#implementation-1
 #![feature(custom_test_frameworks)]
 #![feature(abi_x86_interrupt)] // https://os.phil-opp.com/cpu-exceptions/
