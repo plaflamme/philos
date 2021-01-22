@@ -17,6 +17,7 @@ pub mod memory;
 pub mod qemu;
 #[macro_use]
 pub mod serial;
+pub mod task;
 pub mod vga_buffer;
 
 extern crate alloc;
