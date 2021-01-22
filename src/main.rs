@@ -9,6 +9,7 @@ use alloc::{boxed::Box, rc::Rc, vec, vec::Vec};
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use philos::println;
+use philos::task::keyboard::print_keypresses;
 use philos::task::simple_executor::SimpleExecutor;
 use philos::task::Task;
 use x86_64::VirtAddr;
@@ -28,6 +29,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
     let mut executor = SimpleExecutor::new();
     executor.spawn(Task::new(example_task()));
+    executor.spawn(Task::new(print_keypresses()));
     executor.run();
 
     #[cfg(test)]

@@ -12,6 +12,9 @@ edition = "2018"
 
 [dependencies]
 bootloader = { version = "0.9" , features = ["map_physical_memory"] }
+conquer-once = { version = "0.3", default-features = false }
+crossbeam-queue = { version = "0.3", default-features = false, features = ["alloc"] }
+futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
 linked_list_allocator = "0.8"
 pc-keyboard = "0.5"
 pic8259_simple = "0.2.0"

@@ -3,6 +3,7 @@ use core::future::Future;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 
+pub mod keyboard;
 pub mod simple_executor;
 
 pub struct Task {
