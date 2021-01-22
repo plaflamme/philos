@@ -5,6 +5,7 @@
 #![feature(const_mut_refs)] // https://os.phil-opp.com/allocator-designs/#implementation-1
 #![feature(custom_test_frameworks)]
 #![feature(abi_x86_interrupt)] // https://os.phil-opp.com/cpu-exceptions/
+#![feature(wake_trait)] // https://os.phil-opp.com/async-await/#the-wake-trait
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 

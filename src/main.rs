@@ -5,12 +5,11 @@
 #![test_runner(philos::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
-use alloc::{boxed::Box, rc::Rc, vec, vec::Vec};
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use philos::println;
+use philos::task::executor::Executor;
 use philos::task::keyboard::print_keypresses;
-use philos::task::simple_executor::SimpleExecutor;
 use philos::task::Task;
 use x86_64::VirtAddr;
 
@@ -21,21 +20,20 @@ entry_point!(kernel_main);
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
     philos::init();
 
+    #[cfg(test)]
+    test_main();
+
     let phys_offset = VirtAddr::new(boot_info.physical_memory_offset);
     let mut mapper = unsafe { philos::memory::init(phys_offset) };
     let mut allocator = unsafe { philos::memory::BootInfoFrameAllocator::new(&boot_info) };
 
     philos::allocator::init(&mut mapper, &mut allocator).expect("heap allocation failed");
 
-    let mut executor = SimpleExecutor::new();
+    let mut executor = Executor::new();
     executor.spawn(Task::new(example_task()));
     executor.spawn(Task::new(print_keypresses()));
     executor.run();
 
-    #[cfg(test)]
-    test_main();
-
-    philos::hlt();
 }
 
 #[cfg(not(test))]
