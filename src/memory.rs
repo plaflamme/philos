@@ -1,12 +1,23 @@
 use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
 use bootloader::BootInfo;
+use conquer_once::spin::OnceCell;
+use spin::Mutex;
 use x86_64::registers::control::Cr3;
-use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB};
+use x86_64::structures::paging::{
+    FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB,
+};
 use x86_64::{PhysAddr, VirtAddr};
 
-pub unsafe fn init(physical_memory_offset: VirtAddr) -> OffsetPageTable<'static> {
-    let level_4_table = active_level4_table(physical_memory_offset);
-    OffsetPageTable::new(level_4_table, physical_memory_offset)
+pub static MAPPER: OnceCell<Mutex<OffsetPageTable<'static>>> = OnceCell::uninit();
+pub static FRAME_ALLOCATOR: OnceCell<Mutex<BootInfoFrameAllocator>> = OnceCell::uninit();
+
+pub unsafe fn init(boot_info: &'static BootInfo) {
+    let phys_offset = VirtAddr::new(boot_info.physical_memory_offset);
+    MAPPER.init_once(|| {
+        let level_4_table = active_level4_table(phys_offset);
+        Mutex::new(OffsetPageTable::new(level_4_table, phys_offset))
+    });
+    FRAME_ALLOCATOR.init_once(|| Mutex::new(BootInfoFrameAllocator::new(boot_info)))
 }
 
 unsafe fn active_level4_table(phys_memory_offset: VirtAddr) -> &'static mut PageTable {
@@ -25,7 +36,7 @@ pub struct BootInfoFrameAllocator {
 }
 
 impl BootInfoFrameAllocator {
-    pub unsafe fn new(boot_info: &'static BootInfo) -> Self {
+    unsafe fn new(boot_info: &'static BootInfo) -> Self {
         BootInfoFrameAllocator {
             memory_map: &boot_info.memory_map,
             next: 0,

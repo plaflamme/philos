@@ -11,7 +11,6 @@ use philos::println;
 use philos::task::executor::Executor;
 use philos::task::keyboard::print_keypresses;
 use philos::task::Task;
-use x86_64::VirtAddr;
 
 extern crate alloc;
 
@@ -19,21 +18,19 @@ entry_point!(kernel_main);
 
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
     philos::init();
+    unsafe { philos::memory::init(boot_info) };
+    philos::allocator::init().expect("heap allocation failed");
+    let acpi = unsafe { philos::acpi::init() };
+
+    println!("ACPI revision {}", acpi.revision);
 
     #[cfg(test)]
     test_main();
-
-    let phys_offset = VirtAddr::new(boot_info.physical_memory_offset);
-    let mut mapper = unsafe { philos::memory::init(phys_offset) };
-    let mut allocator = unsafe { philos::memory::BootInfoFrameAllocator::new(&boot_info) };
-
-    philos::allocator::init(&mut mapper, &mut allocator).expect("heap allocation failed");
 
     let mut executor = Executor::new();
     executor.spawn(Task::new(example_task()));
     executor.spawn(Task::new(print_keypresses()));
     executor.run();
-
 }
 
 #[cfg(not(test))]

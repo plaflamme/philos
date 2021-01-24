@@ -6,11 +6,13 @@
 #![feature(custom_test_frameworks)]
 #![feature(abi_x86_interrupt)] // https://os.phil-opp.com/cpu-exceptions/
 #![feature(wake_trait)] // https://os.phil-opp.com/async-await/#the-wake-trait
+#![feature(cell_update)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
 use core::panic::PanicInfo;
 
+pub mod acpi;
 pub mod allocator;
 pub mod gdt;
 pub mod interrupts;

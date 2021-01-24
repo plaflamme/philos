@@ -1,3 +1,4 @@
+use core::ops::DerefMut;
 use x86_64::structures::paging::mapper::MapToError;
 use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;
@@ -12,10 +13,9 @@ static ALLOCATOR: Locked<fixed::FixedAllocator> = Locked::new(fixed::FixedAlloca
 pub const HEAP_START: usize = 0x_4444_4444_0000;
 pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
 
-pub fn init(
-    mapper: &mut impl Mapper<Size4KiB>,
-    frame_allocator: &mut impl FrameAllocator<Size4KiB>,
-) -> Result<(), MapToError<Size4KiB>> {
+pub fn init() -> Result<(), MapToError<Size4KiB>> {
+    let mut mapper = crate::memory::MAPPER.get().unwrap().lock();
+    let mut frame_allocator = crate::memory::FRAME_ALLOCATOR.get().unwrap().lock();
     let page_range = {
         let start = VirtAddr::new(HEAP_START as u64);
         let end = start + (HEAP_SIZE - 1) as u64;
@@ -34,7 +34,7 @@ pub fn init(
                     page,
                     frame,
                     PageTableFlags::PRESENT | PageTableFlags::WRITABLE,
-                    frame_allocator,
+                    frame_allocator.deref_mut(),
                 )?
                 .flush();
         }
