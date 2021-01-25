@@ -20,9 +20,19 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     philos::init();
     unsafe { philos::memory::init(boot_info) };
     philos::allocator::init().expect("heap allocation failed");
-    let acpi = unsafe { philos::acpi::init() };
+    let acpi = unsafe { philos::acpi::init() }.expect("unable to enable ACPI");
 
     println!("ACPI revision {}", acpi.revision);
+    if let Ok(platform_info) = acpi.platform_info() {
+        println!("Power profile  : {:?}", platform_info.power_profile);
+        println!("Interrupt model: {:?}", platform_info.interrupt_model);
+        if let Some(processor_info) = platform_info.processor_info {
+            println!("Boot processor : {:?}", processor_info.boot_processor);
+            for proc in processor_info.application_processors.iter() {
+                println!("Appl processor : {:?}", proc);
+            }
+        }
+    }
 
     #[cfg(test)]
     test_main();
@@ -37,6 +47,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
+    philos::serial_println!("{}", info);
     philos::hlt();
 }
 

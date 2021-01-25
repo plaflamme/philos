@@ -3,9 +3,7 @@ use bootloader::BootInfo;
 use conquer_once::spin::OnceCell;
 use spin::Mutex;
 use x86_64::registers::control::Cr3;
-use x86_64::structures::paging::{
-    FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB,
-};
+use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB};
 use x86_64::{PhysAddr, VirtAddr};
 
 pub static MAPPER: OnceCell<Mutex<OffsetPageTable<'static>>> = OnceCell::uninit();

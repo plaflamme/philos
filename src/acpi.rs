@@ -1,15 +1,20 @@
-use acpi::PhysicalMapping;
 use core::cmp::max;
 use core::mem::size_of;
 use core::ops::DerefMut;
 use core::ptr::NonNull;
+use core::sync::atomic::{AtomicU64, Ordering};
+
+use ::aml::{AmlError, AmlName, AmlValue};
+use acpi::sdt::Signature;
+use acpi::{AcpiError, AcpiTables, PhysicalMapping};
+use core::hint::spin_loop;
 use x86_64::structures::paging::frame::PhysFrameRangeInclusive;
 use x86_64::structures::paging::page::PageRangeInclusive;
-use x86_64::structures::paging::{
-    Mapper, Page, PageTableFlags, PhysFrame, Size4KiB,
-};
+use x86_64::structures::paging::{Mapper, Page, PageTableFlags, PhysFrame, Size4KiB};
 use x86_64::{PhysAddr, VirtAddr};
-use core::sync::atomic::{AtomicU64, Ordering};
+
+mod aml;
+pub mod fadt;
 
 static ACPI_START: u64 = 0x_3333_3333_0000;
 static NEXT_OFFSET: AtomicU64 = AtomicU64::new(0);
@@ -57,7 +62,10 @@ impl acpi::AcpiHandler for Handler {
 
         let locked = &mut crate::memory::FRAME_ALLOCATOR.get().unwrap().lock();
         for (page, phys_frame) in page_range.into_iter().zip(phys_range) {
-            let mut mapper = crate::memory::MAPPER.get().expect("memory module not initialized").lock();
+            let mut mapper = crate::memory::MAPPER
+                .get()
+                .expect("memory module not initialized")
+                .lock();
             mapper
                 .map_to(
                     page,
@@ -97,9 +105,92 @@ impl acpi::AcpiHandler for Handler {
     }
 }
 
-pub unsafe fn init() -> acpi::AcpiTables<Handler> {
-    match acpi::AcpiTables::search_for_rsdp_bios(Handler) {
-        Ok(tables) => tables,
-        Err(err) => panic!("failed to initialize ACPI: {:?}", err),
+// TODO: we probably want to keep the tables internal and expose some kind of power management interface instead.
+pub unsafe fn init() -> Result<acpi::AcpiTables<Handler>, AcpiError> {
+    use x86_64::instructions::port::{PortRead, PortWrite};
+
+    let tables = acpi::AcpiTables::search_for_rsdp_bios(Handler)?;
+    if let Some(fadt) = tables.get_sdt::<fadt::Fadt>(Signature::FADT)? {
+        PortWrite::write_to_port(fadt.smi_cmd_port as u16, fadt.acpi_enable);
+
+        // we must wait, but ideally, I'm pretty sure we could use interrupts instead
+        while <u16 as PortRead>::read_from_port(fadt.pm1a_control_block as u16) == 0 {
+            spin_loop()
+        }
+        if fadt.pm1b_control_block != 0 {
+            while <u16 as PortRead>::read_from_port(fadt.pm1b_control_block as u16) == 0 {
+                spin_loop()
+            }
+        }
+        Ok(tables)
+    } else {
+        Err(AcpiError::TableMissing(Signature::FADT))
+    }
+}
+
+#[derive(Debug)]
+pub enum ShutdownError {
+    Acpi(AcpiError),
+    Aml(AmlError),
+}
+
+impl From<AmlError> for ShutdownError {
+    fn from(error: AmlError) -> Self {
+        ShutdownError::Aml(error)
+    }
+}
+
+impl From<AcpiError> for ShutdownError {
+    fn from(error: AcpiError) -> Self {
+        ShutdownError::Acpi(error)
+    }
+}
+
+/// Initiate ACPI "soft off": global state G2, sleep state S5.
+pub unsafe fn shutdown(acpi: &AcpiTables<crate::acpi::Handler>) -> Result<(), ShutdownError> {
+    match &acpi.dsdt {
+        None => Err(ShutdownError::Aml(AmlError::WrongParser)),
+        Some(dsdt) => {
+            // https://forum.osdev.org/viewtopic.php?f=1&t=16990&start=0&sid=895acb4b67b1aa6a8643ab9b137370d1
+
+            // We must read the \_S5_ value which is a AmlValue::Package of 4 AmlValue::Integer values:
+            //   SLP_TYPa | SLP_TYPb | Reserved | Reserved
+            //
+            // Then, we must write SLP_TYPa << 10 | 1 << 13 into PM1a_CNT_BLK
+            // If PM1b_CNT_BLK is non-zero, then
+            //   we must write SLP_TYPb << 10 | 1 << 13 into PM1b_CNT_BLK
+
+            let ctx = aml::parse_table(dsdt)?;
+            let (slp_typ_a, slp_typ_b) =
+                match ctx.namespace.get_by_path(&AmlName::from_str(r"\_S5_")?)? {
+                    AmlValue::Package(values) if values.len() == 4 => {
+                        let typ_a = &values[0];
+                        let typ_b = &values[1];
+                        (
+                            typ_a.as_integer(&ctx)? as u16,
+                            typ_b.as_integer(&ctx)? as u16,
+                        )
+                    }
+                    _ => return Err(ShutdownError::Aml(AmlError::InvalidPkgLength)),
+                };
+
+            if let Some(fadt) = acpi.get_sdt::<fadt::Fadt>(Signature::FADT)? {
+                x86_64::instructions::port::PortWrite::write_to_port(
+                    fadt.pm1a_control_block as u16,
+                    slp_typ_a << 10 | 1 << 13,
+                );
+                if fadt.pm1b_control_block != 0 {
+                    x86_64::instructions::port::PortWrite::write_to_port(
+                        fadt.pm1b_control_block as u16,
+                        slp_typ_b << 10 | 1 << 13,
+                    );
+                }
+                Ok(())
+            } else {
+                Err(ShutdownError::Acpi(AcpiError::TableMissing(
+                    Signature::FADT,
+                )))
+            }
+        }
     }
 }

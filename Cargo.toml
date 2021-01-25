@@ -12,6 +12,7 @@ edition = "2018"
 
 [dependencies]
 acpi = "2.2"
+aml = "0.10"
 bootloader = { version = "0.9" , features = ["map_physical_memory"] }
 conquer-once = { version = "0.3", default-features = false }
 crossbeam-queue = { version = "0.3", default-features = false, features = ["alloc"] }
@@ -32,6 +33,8 @@ features = ["spin_no_std"]
 # https://os.phil-opp.com/testing/#exiting-qemu
 [package.metadata.bootimage]
 run-args = [
+# uncomment to enable more than a single core
+#    "-smp", "2",
     "-serial", "stdio",
 ]
 test-args = [

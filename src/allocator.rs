@@ -11,7 +11,7 @@ pub mod free_list;
 static ALLOCATOR: Locked<fixed::FixedAllocator> = Locked::new(fixed::FixedAllocator::new());
 
 pub const HEAP_START: usize = 0x_4444_4444_0000;
-pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
+pub const HEAP_SIZE: usize = 1024 * 1024; // 1MiB
 
 pub fn init() -> Result<(), MapToError<Size4KiB>> {
     let mut mapper = crate::memory::MAPPER.get().unwrap().lock();
